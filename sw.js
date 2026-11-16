@@ -1,35 +1,37 @@
-const CACHE_NAME = 'html-runner-cache-v1';
+const CACHE_NAME = 'html-runner-cache-v2';
 
-// We use relative paths ('./') so it works dynamically with GitHub Pages sub-directories
+// The files we want to save to the user's device
 const urlsToCache = [
     './',
     './index.html',
     './sw.js'
 ];
 
-// Install event - Cache the files
+// 1. Install Event: When the site loads for the first time, save these files in the background
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Opened cache');
+                console.log('Opened cache and saved files for offline use');
                 return cache.addAll(urlsToCache);
             })
     );
+    // Force the waiting service worker to become the active service worker immediately
+    self.skipWaiting(); 
 });
 
-// Fetch event - Serve from cache if offline
+// 2. Fetch Event: Intercept network requests and serve from cache if offline
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                // If the file is in the cache, return it. Otherwise, fetch from the network.
+                // Return the cached file if found, otherwise try to fetch it from the internet
                 return response || fetch(event.request);
             })
     );
 });
 
-// Activate event - Clean up old caches if you update the app
+// 3. Activate Event: Clean up old caches if you update your website code later
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -42,4 +44,6 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    // Take control of all pages immediately without needing a page refresh
+    self.clients.claim();
 });
